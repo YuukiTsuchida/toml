@@ -3,6 +3,10 @@
 
 #include <iostream>
 
+#include <iomanip>
+#include <ostream>
+#include <cassert>
+
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -179,6 +183,17 @@ public:
         return date;
     }
 
+    inline void accept(std::ostream& stream)
+    {
+      char offset_sign = (hour_offset_ > 0) ? ('+') : ('-');
+
+      stream << year_ << "-" << month_ << "-" << day_ << "T";
+      stream << hour_ << ":" << minute_ << ":" << second_;
+      stream << offset_sign;
+      stream << std::setw(2) << std::setfill('0') << std::abs(hour_offset_) << ":";
+      stream << std::setw(2) << std::setfill('0') << std::abs(hour_offset_);
+    }
+
 private:
     inline void update_current_time()
     {
@@ -232,6 +247,12 @@ private:
     time_t current_time_;
 };
 
+static inline std::ostream& operator << (std::ostream& stream, date_time& date)
+{
+  date.accept(stream);
+  return stream;
+}
+
 class base
 {
 public:
@@ -262,9 +283,16 @@ public:
         return false;
     }
 
+    virtual void accept(std::ostream& stream) = 0;
 private:
     data_type type_;
 };
+
+static inline std::ostream& operator << (std::ostream& stream, base& base_data)
+{
+  base_data.accept(stream);
+  return stream;
+}
 
 template<class value_data, base::data_type type>
 class value : public base
@@ -275,7 +303,7 @@ public:
     value() : base(type)
     {}
 
-    value(value_data data) : base(type), data_(data)
+    value(const value_data& data) : base(type), data_(data)
     {}
 
     value(const value<value_data, type>& other) : base(type), data_(other.data_)
@@ -302,15 +330,93 @@ public:
         return *this;
     }
 
+    virtual inline void accept(std::ostream&) override
+    {}
+
 protected:
     value_data data_;
 };
+
+template<>
+inline void value<int, base::data_type::integer>::accept(std::ostream& stream)
+{
+  stream << data_;
+}
+
+template<>
+inline void value<float, base::data_type::floaing>::accept(std::ostream& stream)
+{
+  stream << data_;
+}
+
+template<>
+inline void value<std::string, base::data_type::string>::accept(std::ostream& stream)
+{
+  stream << data_;
+}
+
+template<>
+inline void value<bool, base::data_type::boolean>::accept(std::ostream& stream)
+{
+  std::string bool_str = (data_) ? ("true") : ("false");
+  stream << bool_str;
+}
+
+template<>
+inline void value<date_time, base::data_type::date>::accept(std::ostream& stream)
+{
+  stream << data_;
+}
 
 using int_value = value<int, base::data_type::integer>;
 using float_value = value<float, base::data_type::floaing>;
 using string_value = value<std::string, base::data_type::string>;
 using bool_value = value<bool, base::data_type::boolean>;
 using date_time_value = value<date_time, base::data_type::date>;
+
+template<>
+inline bool base::is<int>() const
+{
+    return type_ == data_type::integer;
+}
+
+template<>
+inline bool base::is<float>() const
+{
+    return type_ == data_type::floaing;
+}
+
+template<>
+inline bool base::is<std::string>() const
+{
+    return type_ == data_type::string;
+}
+
+template<>
+inline bool base::is<bool>() const
+{
+    return type_ == data_type::boolean;
+}
+
+template<>
+inline bool base::is<date_time>() const
+{
+    return type_ == data_type::date;
+}
+
+class array;
+template<>
+inline bool base::is<array>() const
+{
+    return type_ == data_type::array;
+}
+
+class table;
+template<>
+inline bool base::is<table>() const
+{
+    return type_ == data_type::table;
+}
 
 class array : public value<std::vector<std::shared_ptr<base>>, base::data_type::array>
 {
@@ -319,7 +425,8 @@ public:
     using container_type = typename base_type::value_type;
     using base_value_type = typename container_type::value_type::element_type;
 
-    using iteraotr = typename container_type::iterator;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
 
     array() = default;
     
@@ -370,18 +477,44 @@ public:
 
     inline std::shared_ptr<base> operator[] (int index)
     {
-        
         return data_[index];
     }
 
-    inline iteraotr begin()
+    inline iterator begin()
     {
         return data_.begin();
     }
 
-    inline iteraotr end()
+    inline iterator end()
     {
         return data_.end();
+    }
+
+    inline const_iterator begin() const
+    {
+        return data_.begin();
+    }
+
+    inline const_iterator end() const
+    {
+        return data_.end();
+    }
+
+    virtual void accept(std::ostream& stream) override
+    {
+      stream << '[';
+      const_iterator iterator = begin();
+      while(iterator != end())
+      {
+        stream << *(*iterator);
+        iterator += 1;
+        if(iterator != end())
+        {
+          stream << ',';
+        }
+      }
+
+      stream << ']';
     }
 };
 
@@ -391,7 +524,8 @@ public:
     using base_type = value<std::unordered_map<std::string, std::shared_ptr<base>>, base::data_type::table>;
     using container_type = typename base_type::value_type;
         
-    using iteraotr = typename container_type::iterator;
+    using iterator = typename container_type::iterator;
+    using const_iterator = typename container_type::const_iterator;
 
     table() = default;
 
@@ -407,10 +541,16 @@ public:
         return find_result != data_.end();
     }
 
-    inline bool add(const std::string& key, std::shared_ptr<base> value)
+    template<class value_data>
+    inline bool add(const std::string& key, const value_data& value)
     {
-        std::cout << typeid(std::shared_ptr<base>::element_type).name() << std::endl;
-        auto result = data_.emplace(key, value);
+        return add(key, std::make_shared<value_data>(value));
+    }
+
+    template<class value_data>
+    inline bool add(const std::string& key, std::shared_ptr<value_data> value)
+    {
+        auto result = data_.emplace(key, std::static_pointer_cast<base>(value));
 
         return result.second;
     }
@@ -457,62 +597,55 @@ public:
 
     inline std::shared_ptr<base> operator[](const std::string& key)
     {
-        return data_[key];
+        return data_.at(key);
     }
 
-    inline iteraotr begin()
+    inline std::shared_ptr<base> operator[](const std::string& key) const
+    {
+        return data_.at(key);
+    }
+
+    inline iterator begin()
     {
         return data_.begin();
     }
 
-    inline iteraotr end()
+    inline iterator end()
     {
         return data_.end();
     }
 
+    inline const_iterator begin() const
+    {
+        return data_.begin();
+    }
+
+    inline const_iterator end() const
+    {
+        return data_.end();
+    }
+
+    virtual inline void accept(std::ostream& stream) override
+    {
+      for(auto& i : data_)
+      {
+        if((*i.second).is<table>())
+        {
+          std::dynamic_pointer_cast<table>(i.second)->accept(stream, i.first);
+        }
+        else
+        {
+          stream << i.first << " = " << (*i.second) << std::endl;
+        }
+      }
+    }
+
+    inline void accept(std::ostream& stream, const std::string& table_name)
+    {
+      stream << "[" << table_name << "]" << std::endl;
+      accept(stream);
+    }
 };
-
-template<>
-inline bool base::is<int>() const
-{
-    return type_ == data_type::integer;
-}
-
-template<>
-inline bool base::is<float>() const
-{
-    return type_ == data_type::floaing;
-}
-
-template<>
-inline bool base::is<std::string>() const
-{
-    return type_ == data_type::string;
-}
-
-template<>
-inline bool base::is<bool>() const
-{
-    return type_ == data_type::boolean;
-}
-
-template<>
-inline bool base::is<date_time>() const
-{
-    return type_ == data_type::date;
-}
-
-template<>
-inline bool base::is<array>() const
-{
-    return type_ == data_type::array;
-}
-
-template<>
-inline bool base::is<table>() const
-{
-    return type_ == data_type::table;
-}
 
 } // namespace toml
 
