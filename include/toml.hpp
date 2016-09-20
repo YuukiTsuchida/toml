@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <iomanip>
+#include <sstream>
 #include <ostream>
 #include <cassert>
 
@@ -648,11 +649,13 @@ public:
 
     virtual inline void accept(std::ostream& stream) override
     {
+      std::ostringstream child_stream;
       for(auto& i : data_)
       {
         if((*i.second).is<table>())
         {
-          std::dynamic_pointer_cast<table>(i.second)->accept(stream, i.first);
+          std::dynamic_pointer_cast<table>(i.second)->accept(child_stream, i.first);
+          stream << child_stream.str();
         }
         else
         {
@@ -663,8 +666,34 @@ public:
 
     inline void accept(std::ostream& stream, const std::string& table_name)
     {
-      stream << "[" << table_name << "]" << std::endl;
-      accept(stream);
+      std::ostringstream child_stream;
+
+      bool has_value = false;
+      for(auto& i : data_)
+      {
+        if((*i.second).is<table>())
+        {
+          std::ostringstream child_table_name_stream;
+          child_table_name_stream << table_name << "." << i.first;
+          std::string child_table_name = child_table_name_stream.str();
+
+          std::ostringstream child_element_stream;
+          std::dynamic_pointer_cast<table>(i.second)->accept(child_element_stream, child_table_name);
+          child_stream << child_element_stream.str();
+        }
+        else
+        {
+          if(!has_value)
+          {
+            stream << "[" << table_name << "]" << std::endl;
+            has_value = true;
+          }
+
+          stream << i.first << " = " << (*i.second) << std::endl;
+        }
+      }
+
+      stream << child_stream.str();
     }
 };
 
