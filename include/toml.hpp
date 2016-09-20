@@ -512,6 +512,41 @@ public:
     }
 };
 
+template<>
+inline void array::add(int data)
+{
+    std::shared_ptr<int_value> data_ptr = std::make_shared<int_value>(data);
+    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+}
+
+template<>
+inline void array::add(float data)
+{
+    std::shared_ptr<float_value> data_ptr = std::make_shared<float_value>(data);
+    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+}
+
+template<>
+inline void array::add(const std::string& data)
+{
+    std::shared_ptr<string_value> data_ptr = std::make_shared<string_value>(data);
+    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+}
+
+template<>
+inline void array::add(bool data)
+{
+    std::shared_ptr<bool_value> data_ptr = std::make_shared<bool_value>(data);
+    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+}
+
+template<>
+inline void array::add(date_time data)
+{
+    std::shared_ptr<date_time_value> data_ptr = std::make_shared<date_time_value>(data);
+    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+}
+
 class table : public value<std::unordered_map<std::string, std::shared_ptr<base>>, base::data_type::table>
 {
 public:
