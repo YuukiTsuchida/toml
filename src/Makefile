@@ -1,4 +1,4 @@
-CXXFLAGS=-c -std=c++14
+CXXFLAGS=-c -std=c++11
 SRCS=main.cpp
 OBJS=$(SRCS:.cpp=.o)
 DEPS=$(SRCS:.cpp=.d)
@@ -23,7 +23,7 @@ build: $(OBJS)
 
 
 .cpp.o: 
-	g++ -c -MMD -MP -std=c++11 $(CXXFLAGS) $<
+	g++ -c -MMD -MP $(CXXFLAGS) $<
 
 .PHONY: clean
 clean:
