@@ -574,7 +574,9 @@ public:
     template<class value_data>
     inline bool add(const std::string& key, const value_data& value)
     {
-        return add(key, std::make_shared<value_data>(value));
+        auto value_ptr = std::make_shared<value_data>(value);
+        auto result = data_.emplace(key, std::static_pointer_cast<base>(value_ptr));
+        return result.second;
     }
 
     template<class value_data>
