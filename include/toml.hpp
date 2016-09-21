@@ -441,10 +441,40 @@ public:
     {}
 
     template<class value_data>
-    inline void add(value_data data)
+    inline void add(const value_data& data)
     {
         std::shared_ptr<value_data> data_ptr = std::make_shared<value_data>(data);
         data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
+    }
+
+    inline void add(const int& data)
+    {
+        add(int_value(data));
+    }
+
+    inline void add(const float& data)
+    {
+        add(float_value(data));
+    }
+
+    inline void add(const char* data)
+    {
+        add(std::string(data));
+    }
+
+    inline void add(const std::string& data)
+    {
+        add(string_value(data));
+    }
+
+    inline void add(const bool& data)
+    {
+        add(bool_value(data));
+    }
+
+    inline void add(const date_time& data)
+    {
+        add(date_time_value(data));
     }
 
     inline size_t size() const
@@ -513,41 +543,6 @@ public:
     }
 };
 
-template<>
-inline void array::add(int data)
-{
-    std::shared_ptr<int_value> data_ptr = std::make_shared<int_value>(data);
-    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
-}
-
-template<>
-inline void array::add(float data)
-{
-    std::shared_ptr<float_value> data_ptr = std::make_shared<float_value>(data);
-    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
-}
-
-template<>
-inline void array::add(const std::string& data)
-{
-    std::shared_ptr<string_value> data_ptr = std::make_shared<string_value>(data);
-    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
-}
-
-template<>
-inline void array::add(bool data)
-{
-    std::shared_ptr<bool_value> data_ptr = std::make_shared<bool_value>(data);
-    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
-}
-
-template<>
-inline void array::add(date_time data)
-{
-    std::shared_ptr<date_time_value> data_ptr = std::make_shared<date_time_value>(data);
-    data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
-}
-
 class table : public value<std::unordered_map<std::string, std::shared_ptr<base>>, base::data_type::table>
 {
 public:
@@ -579,6 +574,31 @@ public:
         return result.second;
     }
 
+    inline bool add(const std::string& key, const int& value)
+    {
+        return add(key, int_value(value));
+    }
+
+    inline bool add(const std::string& key, const float& value)
+    {
+        return add(key, float_value(value));
+    }
+
+    inline bool add(const std::string& key, const std::string& value)
+    {
+        return add(key, string_value(value));
+    }
+
+    inline bool add(const std::string& key, const bool& value)
+    {
+        return add(key, bool_value(value));
+    }
+
+    inline bool add(const std::string& key, const date_time& value)
+    {
+        return add(key, date_time_value(value));
+    }
+   
     template<class value_data>
     inline std::shared_ptr<value_data> get_as(const std::string& key)
     {
@@ -698,36 +718,6 @@ public:
       stream << child_stream.str();
     }
 };
-
-template<>
-inline bool table::add(const std::string& key, const int& value)
-{
-    return add(key, int_value(value));
-}
-
-template<>
-inline bool table::add(const std::string& key, const float& value)
-{
-    return add(key, float_value(value));
-}
-
-template<>
-inline bool table::add(const std::string& key, const std::string& value)
-{
-    return add(key, string_value(value));
-}
-
-template<>
-inline bool table::add(const std::string& key, const bool& value)
-{
-    return add(key, bool_value(value));
-}
-
-template<>
-inline bool table::add(const std::string& key, const date_time& value)
-{
-    return add(key, date_time_value(value));
-}
 
 } // namespace toml
 
