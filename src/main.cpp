@@ -45,6 +45,9 @@ void array_test()
   array_data.add(toml::int_value(100));
   array_data.add(toml::int_value(200));
 
+  array_data.add(1000);
+  array_data.add(1.1f);
+  array_data.add("aaaaaaaa");
 
   std::cout << array_data << std::endl;
 }
@@ -68,7 +71,8 @@ void table_in_table_test()
 
   toml::table table_data2;
   table_data2.add("table", table_data);
-
+  table_data2.add("value", toml::int_value(1));
+  table_data2.add("str", toml::string_value("abcdefg"));
 
   toml::table root;
   root.add("table_in_table2", table_data2);
@@ -87,10 +91,15 @@ void table_in_array_test()
 
 int main()
 {
+  std::cout << "<value_test>" << std::endl;
   value_test();
+  std::cout << "<array_test>" << std::endl;
   array_test();
+  std::cout << "<table_test>" << std::endl;
   table_test();
+  std::cout << "<table_in_table_test>" << std::endl;
   table_in_table_test();
+
   return 0;
 }
 
