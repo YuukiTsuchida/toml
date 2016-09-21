@@ -699,6 +699,36 @@ public:
     }
 };
 
+template<>
+inline bool table::add(const std::string& key, const int& value)
+{
+    return add(key, int_value(value));
+}
+
+template<>
+inline bool table::add(const std::string& key, const float& value)
+{
+    return add(key, float_value(value));
+}
+
+template<>
+inline bool table::add(const std::string& key, const std::string& value)
+{
+    return add(key, string_value(value));
+}
+
+template<>
+inline bool table::add(const std::string& key, const bool& value)
+{
+    return add(key, bool_value(value));
+}
+
+template<>
+inline bool table::add(const std::string& key, const date_time& value)
+{
+    return add(key, date_time_value(value));
+}
+
 } // namespace toml
 
 #endif 
