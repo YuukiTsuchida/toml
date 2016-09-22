@@ -100,6 +100,15 @@ int main()
   std::cout << "<table_in_table_test>" << std::endl;
   table_in_table_test();
 
+  std::string toml = "\
+number = +1_00  #aaaaa\n\
+number2 = -1_00#aaaaa\n\
+number3 = +0.11111#aaaaa\n\
+#table = \"TOOO\"\
+";
+
+  auto parse_table = toml::parse::parse_str(toml);
+  std::cout << parse_table << std::endl;
   return 0;
 }
 
