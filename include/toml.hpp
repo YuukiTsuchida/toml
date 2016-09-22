@@ -13,6 +13,7 @@
 #include <ctime>
 #include <memory>
 #include <string>
+#include <stdexcept>
 #include <vector>
 #include <unordered_map>
 
@@ -731,6 +732,209 @@ public:
       stream << child_stream.str();
     }
 };
+
+class parse_exception : public std::runtime_error
+{
+public:
+    parse_exception(const std::string& message) : std::runtime_error(message)
+    {}
+
+    parse_exception(const std::string& message, unsigned int line) : std::runtime_error(message + " at line " + std::to_string(line))
+    {}
+};
+
+class parse
+{
+private:
+    enum class parse_type
+    {
+        error,
+        number,
+        string,
+        boolean,
+        date,
+        array,
+        table 
+    };
+
+public:
+    inline static table parse_str(const std::string& str)
+    {
+        std::istringstream stream = std::istringstream(str);
+        return parse_impl(stream);
+    }
+
+private:
+    inline static table parse_impl(std::istream& stream)
+    {
+        table root;
+        std::string line;
+        while(std::getline(stream, line))
+        {
+            std::cout << __FILE__ << "::" << __LINE__ << "  " << line << std::endl;
+            parse_key_valeu_pair(root, line.begin(), line.end());
+        }
+
+        return root;
+    }
+
+    inline static void parse_key_valeu_pair(table& table, const std::string::iterator& line_start, const std::string::iterator& line_end)
+    {
+        auto key_start = consume_whitespace_toward_front(line_start, line_end);
+        if(key_start == line_end || *key_start == '#')
+        {
+            return;
+        }
+
+        std::string::iterator value_start;
+        std::string key = parse_key(value_start, key_start, line_end);
+
+        std::cout << __FILE__ << "::" << __LINE__ << "  key=" << key << std::endl;
+
+        value_start = consume_whitespace_toward_front(value_start, line_end);
+        auto value = parse_value(value_start, line_end);
+
+        std::cout << key << std::endl;
+        table.add(key, value);;
+    }
+
+    inline static std::string parse_key(std::string::iterator& value_start, const std::string::iterator& start, const std::string::iterator& line_end)
+    {
+        auto equal = std::find_if(start, line_end, [](char c){ return c == '='; });
+        auto key_end = equal - 1;
+        key_end = consume_whitespace_toward_back(key_end, start);
+
+        if(start == key_end)
+        {
+            std::cout << "=" << std::endl;
+            std::cout << "TODO: thow exception" << std::endl;
+        }
+
+        std::string key(start, key_end);
+
+        value_start = equal + 1;
+        return key;
+    }
+
+    inline static std::shared_ptr<base> parse_value(const std::string::iterator& start, const std::string::iterator& line_end)
+    {
+        parse_type type = value_type(start);
+
+        switch(type)
+        {
+        case parse_type::number:
+            return parse_number(start, line_end);
+            break;
+        case parse_type::string:
+            break;
+        case parse_type::boolean:
+            break;
+        case parse_type::date:
+            break;
+        case parse_type::array:
+            break;
+        case parse_type::table:
+            break;
+        default:
+            break;
+        };
+
+        return std::static_pointer_cast<base>(std::make_shared<int_value>(10000000000));
+    }
+
+    inline static parse_type value_type(const std::string::iterator& start)
+    {
+        if(is_number(*start) || *start == '+' || *start == '-')
+        {
+            return parse_type::number;
+        }
+
+        // TODO: thow exception
+        return parse_type::error;
+    }
+
+    inline static std::shared_ptr<base> parse_number(const std::string::iterator& start, const std::string::iterator& line_end)
+    {
+        bool integer = true;
+        std::string::iterator number_end = start;
+        if(*start == '+' || *start == '-')
+        {
+            ++number_end;
+        }
+
+        bool first = true;
+        while(number_end != line_end && *number_end != ' ' && *number_end != '\t' && *number_end != '#')
+        {
+            if(!is_number(*number_end))
+            {
+                if(!first && (*number_end == '.' || *number_end == '_'))
+                {
+                    ++number_end;
+                    if(is_number(*number_end))
+                    {
+                        first = false;
+                        ++number_end;
+                        continue;
+                    }
+                    else
+                    {
+                        std::string error = "illegal format exception:" + std::string(start, line_end);
+                        throw parse_exception(error);
+                    }
+                }
+                else
+                {
+                    std::string error = "illegal format exception:" + std::string(start, line_end);
+                    throw parse_exception(error);
+                }
+                break;
+            } 
+            first = false;
+            ++number_end;
+        }
+
+        std::string number(start, number_end);
+        number.erase(std::remove(number.begin(), number.end(), '_'), number.end());
+        if(integer)
+        {
+            auto value = stoi(number);
+            std::cout << __FILE__ << "::" << __LINE__ << "  " << value << std::endl;
+            return std::static_pointer_cast<base>(std::make_shared<int_value>(value));
+        }
+
+        std::cout << __FILE__ << "::" << __LINE__ << "  " << std::string(start, number_end) << std::endl;
+        return std::static_pointer_cast<base>(std::make_shared<int_value>(100));
+    }
+
+    inline static std::string::iterator consume_whitespace_toward_front(const std::string::iterator& start, const std::string::iterator& end)
+    {
+        std::string::iterator result = start;
+        while (result != end && (*result == ' ' || *result == '\t'))
+        {
+            ++result;
+        }
+
+        return result;
+    }
+
+    inline static std::string::iterator consume_whitespace_toward_back(const std::string::iterator& end, const std::string::iterator& start)
+    {
+        std::string::iterator result = end;
+        while (result != start && (*result == ' ' || *result == '\t'))
+        {
+            --result;
+        }
+        ++result;
+
+        return result;
+    }
+
+    inline static bool is_number(char c)
+    {
+        return ('0' <= c && c <= '9');
+    }
+};
+
 
 } // namespace toml
 
