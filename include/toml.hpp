@@ -447,6 +447,12 @@ public:
         data_.emplace_back(std::static_pointer_cast<base>(data_ptr));
     }
 
+    template<class value_data>
+    inline void add(const std::string& key, std::shared_ptr<value_data> value)
+    {
+        data_.emplace_back(std::static_pointer_cast<base>(value));
+    }
+
     inline void add(const int& data)
     {
         add(int_value(data));
@@ -571,6 +577,13 @@ public:
     {
         auto value_ptr = std::make_shared<value_data>(value);
         auto result = data_.emplace(key, std::static_pointer_cast<base>(value_ptr));
+        return result.second;
+    }
+
+    template<class value_data>
+    inline bool add(const std::string& key, std::shared_ptr<value_data> value)
+    {
+        auto result = data_.emplace(key, std::static_pointer_cast<base>(value));
         return result.second;
     }
 
